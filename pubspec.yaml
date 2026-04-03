@@ -1,0 +1,27 @@
+name: flutter_state_widget
+description: A Flutter package for rendering content across loading states with fully replaceable state panels.
+version: 0.1.0
+homepage: https://github.com/bolong2114/flutter_state_widget
+repository: https://github.com/bolong2114/flutter_state_widget
+issue_tracker: https://github.com/bolong2114/flutter_state_widget/issues
+topics:
+  - flutter
+  - widget
+  - state
+  - loading
+
+environment:
+  sdk: ">=2.17.0 <4.0.0"
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
