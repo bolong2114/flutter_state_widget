@@ -22,6 +22,7 @@ It is designed for package-safe reuse:
 - `LoadState` keeps the state model explicit and readable
 - `StateSnapshot<T>` carries the current state plus optional data/message
 - `StatePanels` lets you replace `idle`, `loading`, `empty`, and `error` views
+- `StateWidgetTexts` provides built-in Chinese and English placeholder copy
 - default placeholders are included, so the package works out of the box
 
 ## Installation
@@ -30,7 +31,7 @@ Add the dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_state_widget: ^0.1.0
+  flutter_state_widget: ^0.1.1
 ```
 
 Then import it:
@@ -71,6 +72,15 @@ Optional configuration object for replacing built-in panels:
 - `loading`
 - `empty`
 - `error`
+
+### `StateWidgetTexts`
+
+Localized copy for the built-in `empty` and `error` placeholders.
+
+Built-in defaults:
+
+- `StateWidgetTexts.english`
+- `StateWidgetTexts.chinese`
 
 ## Basic Example
 
@@ -117,6 +127,47 @@ class _DemoPageState extends State<DemoPage> {
     );
   }
 }
+```
+
+## Built-In Locale Defaults
+
+When you do not pass `texts`, the package resolves default copy from the
+current `Locale`:
+
+- `zh` -> Chinese defaults
+- other locales -> English defaults
+
+```dart
+MaterialApp(
+  locale: const Locale('zh'),
+  home: StateWidget<List<String>>(
+    listenable: state,
+    onRetry: _load,
+    builder: (context, data) => ListView(
+      children: data.map(Text.new).toList(),
+    ),
+  ),
+);
+```
+
+## Override Default Copy
+
+Use `texts` when the host app wants to fully control built-in placeholder
+copy without replacing the entire panel UI:
+
+```dart
+StateWidget<List<String>>(
+  listenable: state,
+  onRetry: _load,
+  texts: const StateWidgetTexts(
+    emptyTitle: 'Nothing here yet',
+    errorTitle: 'Request failed',
+    retryLabel: 'Try again',
+  ),
+  builder: (context, data) => ListView(
+    children: data.map(Text.new).toList(),
+  ),
+);
 ```
 
 ## Custom Panels
@@ -211,6 +262,7 @@ Do not use it as a replacement for application state management. It is a UI rend
 - `LoadState` 用来描述当前加载状态
 - `StateSnapshot<T>` 用来承载当前状态、数据和错误文案
 - `StatePanels` 用来覆盖默认的 `idle / loading / empty / error` 视图
+- `StateWidgetTexts` 提供内置中英文默认文案
 - 不传自定义面板时，组件自带默认实现
 
 ## 安装
@@ -219,7 +271,7 @@ Do not use it as a replacement for application state management. It is a UI rend
 
 ```yaml
 dependencies:
-  flutter_state_widget: ^0.1.0
+  flutter_state_widget: ^0.1.1
 ```
 
 然后导入：
@@ -260,6 +312,15 @@ import 'package:flutter_state_widget/flutter_state_widget.dart';
 - `loading`
 - `empty`
 - `error`
+
+### `StateWidgetTexts`
+
+用于配置内置 `empty` 和 `error` 占位的默认文案。
+
+内置默认值：
+
+- `StateWidgetTexts.english`
+- `StateWidgetTexts.chinese`
 
 ## 基础示例
 
@@ -306,6 +367,45 @@ class _DemoPageState extends State<DemoPage> {
     );
   }
 }
+```
+
+## 内置语言回退
+
+当你没有传入 `texts` 时，组件会根据当前 `Locale` 自动选择默认文案：
+
+- `zh` -> 中文默认文案
+- 其他语言 -> 英文默认文案
+
+```dart
+MaterialApp(
+  locale: const Locale('zh'),
+  home: StateWidget<List<String>>(
+    listenable: state,
+    onRetry: _load,
+    builder: (context, data) => ListView(
+      children: data.map(Text.new).toList(),
+    ),
+  ),
+);
+```
+
+## 覆盖默认文案
+
+如果你只想改默认文案，不想整套替换 `empty / error` UI，可以传入 `texts`：
+
+```dart
+StateWidget<List<String>>(
+  listenable: state,
+  onRetry: _load,
+  texts: const StateWidgetTexts(
+    emptyTitle: '这里还没有内容',
+    errorTitle: '请求失败',
+    retryLabel: '再试一次',
+  ),
+  builder: (context, data) => ListView(
+    children: data.map(Text.new).toList(),
+  ),
+);
 ```
 
 ## 自定义状态面板

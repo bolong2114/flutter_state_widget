@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_state_widget/flutter_state_widget.dart';
 
@@ -96,6 +97,50 @@ void main() {
       expect(retried, 1);
     });
 
+    testWidgets('uses Chinese defaults for zh locale', (tester) async {
+      final state = ValueNotifier<StateSnapshot<String>>(
+        const StateSnapshot.empty(),
+      );
+
+      await tester.pumpWidget(
+        _wrap(
+          StateWidget<String>(
+            listenable: state,
+            onRetry: () {},
+            builder: (context, data) => Text(data),
+          ),
+          locale: const Locale('zh'),
+        ),
+      );
+
+      expect(find.text('暂无数据'), findsOneWidget);
+      expect(find.text('重试'), findsOneWidget);
+    });
+
+    testWidgets('lets host override default texts', (tester) async {
+      final state = ValueNotifier<StateSnapshot<String>>(
+        const StateSnapshot.error(),
+      );
+
+      await tester.pumpWidget(
+        _wrap(
+          StateWidget<String>(
+            listenable: state,
+            onRetry: () {},
+            texts: const StateWidgetTexts(
+              emptyTitle: 'Nothing to show',
+              errorTitle: 'Request failed',
+              retryLabel: 'Try again',
+            ),
+            builder: (context, data) => Text(data),
+          ),
+        ),
+      );
+
+      expect(find.text('Request failed'), findsOneWidget);
+      expect(find.text('Try again'), findsOneWidget);
+    });
+
     testWidgets('updates when state changes', (tester) async {
       final state = ValueNotifier<StateSnapshot<String>>(
         const StateSnapshot.loading(),
@@ -120,8 +165,14 @@ void main() {
   });
 }
 
-Widget _wrap(Widget child) {
+Widget _wrap(Widget child, {Locale? locale}) {
   return MaterialApp(
+    locale: locale ?? const Locale('en'),
+    supportedLocales: const [
+      Locale('en'),
+      Locale('zh'),
+    ],
+    localizationsDelegates: GlobalMaterialLocalizations.delegates,
     home: Scaffold(body: child),
   );
 }

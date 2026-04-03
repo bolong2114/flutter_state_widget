@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.1.1
+
+- Added `StateWidgetTexts` for built-in placeholder copy customization.
+- Added Chinese and English default placeholder copy with locale fallback.
+- Updated tests and documentation for localized placeholder behavior.
+
 ## 0.1.0
 
 - Initial public release of `state_widget`.

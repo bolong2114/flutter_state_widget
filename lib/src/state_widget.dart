@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'load_state.dart';
 import 'state_snapshot.dart';
+import 'state_widget_texts.dart';
 
 /// Builds the success content for [StateWidget].
 typedef StateContentBuilder<T> = Widget Function(BuildContext context, T data);
@@ -54,12 +55,19 @@ class StateWidget<T> extends StatelessWidget {
   /// Optional custom builders for replacing the default state panels.
   final StatePanels panels;
 
+  /// Optional localized copy used by the built-in empty and error panels.
+  ///
+  /// When omitted, the widget resolves package defaults from the current
+  /// locale and falls back to English when no match is available.
+  final StateWidgetTexts? texts;
+
   const StateWidget({
     super.key,
     required this.listenable,
     required this.builder,
     this.onRetry,
     this.panels = const StatePanels(),
+    this.texts,
   });
 
   @override
@@ -92,24 +100,32 @@ class StateWidget<T> extends StatelessWidget {
   }
 
   Widget _buildEmpty(BuildContext context) {
+    final texts = _resolveTexts(context);
+
     return panels.empty?.call(context, onRetry) ??
         _StateMessageView(
           icon: Icons.inbox_outlined,
-          title: 'No data available',
-          actionText: 'Retry',
+          title: texts.emptyTitle,
+          actionText: texts.retryLabel,
           onAction: onRetry,
         );
   }
 
   Widget _buildError(BuildContext context, String? message) {
+    final texts = _resolveTexts(context);
+
     return panels.error?.call(context, message, onRetry) ??
         _StateMessageView(
           icon: Icons.error_outline,
-          title:
-              message?.isNotEmpty == true ? message! : 'Something went wrong',
-          actionText: 'Retry',
+          title: message?.isNotEmpty == true ? message! : texts.errorTitle,
+          actionText: texts.retryLabel,
           onAction: onRetry,
         );
+  }
+
+  StateWidgetTexts _resolveTexts(BuildContext context) {
+    return texts ??
+        StateWidgetTexts.defaultsFor(Localizations.maybeLocaleOf(context));
   }
 }
 
