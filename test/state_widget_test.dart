@@ -141,6 +141,85 @@ void main() {
       expect(find.text('Try again'), findsOneWidget);
     });
 
+    testWidgets('uses StateWidgetThemeData from ThemeData extension',
+        (tester) async {
+      final state = ValueNotifier<StateSnapshot<String>>(
+        const StateSnapshot.empty(),
+      );
+
+      await tester.pumpWidget(
+        _wrap(
+          StateWidget<String>(
+            listenable: state,
+            onRetry: () {},
+            builder: (context, data) => Text(data),
+          ),
+          theme: ThemeData(
+            extensions: const [
+              StateWidgetThemeData(
+                iconColor: Colors.purple,
+                messageColor: Colors.orange,
+                loadingIndicatorColor: Colors.teal,
+                iconSize: 48,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final icon = tester.widget<Icon>(find.byIcon(Icons.inbox_outlined));
+      final text = tester.widget<Text>(find.text('No data available'));
+
+      expect(icon.color, Colors.purple);
+      expect(icon.size, 48);
+      expect(text.style?.color, Colors.orange);
+
+      state.value = const StateSnapshot.loading();
+      await tester.pump();
+
+      final indicator = tester.widget<CircularProgressIndicator>(
+        find.byType(CircularProgressIndicator),
+      );
+      expect(indicator.color, Colors.teal);
+    });
+
+    testWidgets('local StateWidgetTheme overrides ThemeData extension',
+        (tester) async {
+      final state = ValueNotifier<StateSnapshot<String>>(
+        const StateSnapshot.error(),
+      );
+
+      await tester.pumpWidget(
+        _wrap(
+          StateWidgetTheme(
+            data: const StateWidgetThemeData(
+              iconColor: Colors.green,
+              messageColor: Colors.blue,
+            ),
+            child: StateWidget<String>(
+              listenable: state,
+              onRetry: () {},
+              builder: (context, data) => Text(data),
+            ),
+          ),
+          theme: ThemeData(
+            extensions: const [
+              StateWidgetThemeData(
+                iconColor: Colors.red,
+                messageColor: Colors.amber,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final icon = tester.widget<Icon>(find.byIcon(Icons.error_outline));
+      final text = tester.widget<Text>(find.text('Something went wrong'));
+
+      expect(icon.color, Colors.green);
+      expect(text.style?.color, Colors.blue);
+    });
+
     testWidgets('updates when state changes', (tester) async {
       final state = ValueNotifier<StateSnapshot<String>>(
         const StateSnapshot.loading(),
@@ -165,9 +244,10 @@ void main() {
   });
 }
 
-Widget _wrap(Widget child, {Locale? locale}) {
+Widget _wrap(Widget child, {Locale? locale, ThemeData? theme}) {
   return MaterialApp(
     locale: locale ?? const Locale('en'),
+    theme: theme,
     supportedLocales: const [
       Locale('en'),
       Locale('zh'),

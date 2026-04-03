@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'load_state.dart';
 import 'state_snapshot.dart';
+import 'state_widget_theme.dart';
 import 'state_widget_texts.dart';
 
 /// Builds the success content for [StateWidget].
@@ -134,7 +135,13 @@ class _StateLoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: CircularProgressIndicator());
+    final stateTheme = StateWidgetTheme.of(context);
+
+    return Center(
+      child: CircularProgressIndicator(
+        color: stateTheme.loadingIndicatorColor,
+      ),
+    );
   }
 }
 
@@ -154,28 +161,41 @@ class _StateMessageView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final stateTheme = StateWidgetTheme.of(context);
+    final defaultMessageStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    final messageStyle = defaultMessageStyle?.merge(stateTheme.messageStyle) ??
+        stateTheme.messageStyle;
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: stateTheme.padding ?? const EdgeInsets.all(24),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 320),
+          constraints: BoxConstraints(
+            maxWidth: stateTheme.maxContentWidth ?? 320,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 40, color: theme.colorScheme.outline),
-              const SizedBox(height: 12),
+              Icon(
+                icon,
+                size: stateTheme.iconSize ?? 40,
+                color: stateTheme.iconColor ?? theme.colorScheme.outline,
+              ),
+              SizedBox(height: stateTheme.iconTitleSpacing ?? 12),
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                style: messageStyle?.copyWith(
+                  color: stateTheme.messageColor ?? messageStyle.color,
                 ),
               ),
               if (onAction != null && actionText != null) ...[
-                const SizedBox(height: 16),
+                SizedBox(height: stateTheme.actionSpacing ?? 16),
                 OutlinedButton(
                   onPressed: onAction,
+                  style: stateTheme.actionButtonStyle,
                   child: Text(actionText!),
                 ),
               ],

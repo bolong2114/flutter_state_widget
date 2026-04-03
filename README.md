@@ -23,6 +23,7 @@ It is designed for package-safe reuse:
 - `StateSnapshot<T>` carries the current state plus optional data/message
 - `StatePanels` lets you replace `idle`, `loading`, `empty`, and `error` views
 - `StateWidgetTexts` provides built-in Chinese and English placeholder copy
+- `StateWidgetThemeData` supports global theme extension and local overrides
 - default placeholders are included, so the package works out of the box
 
 ## Installation
@@ -81,6 +82,21 @@ Built-in defaults:
 
 - `StateWidgetTexts.english`
 - `StateWidgetTexts.chinese`
+
+### `StateWidgetThemeData`
+
+Theme tokens for the built-in loading and message panels.
+
+You can configure:
+
+- icon color and size
+- message color and text style
+- loading indicator color
+- action button style
+- padding, spacing, and max content width
+
+Use it either through `ThemeData.extensions` or with a local
+`StateWidgetTheme`.
 
 ## Basic Example
 
@@ -166,6 +182,64 @@ StateWidget<List<String>>(
   ),
   builder: (context, data) => ListView(
     children: data.map(Text.new).toList(),
+  ),
+);
+```
+
+## Multi-Theme Support
+
+Use `StateWidgetThemeData` in `ThemeData.extensions` when the host app wants
+`StateWidget` to follow different light, dark, or brand themes:
+
+```dart
+MaterialApp(
+  theme: ThemeData(
+    colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1565C0)),
+    extensions: const [
+      StateWidgetThemeData(
+        iconColor: Color(0xFF1565C0),
+        loadingIndicatorColor: Color(0xFF1565C0),
+      ),
+    ],
+  ),
+  darkTheme: ThemeData(
+    brightness: Brightness.dark,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: const Color(0xFF80CBC4),
+      brightness: Brightness.dark,
+    ),
+    extensions: const [
+      StateWidgetThemeData(
+        iconColor: Color(0xFF80CBC4),
+        messageColor: Color(0xFFD7CCC8),
+        loadingIndicatorColor: Color(0xFF80CBC4),
+      ),
+    ],
+  ),
+  home: MyPage(),
+);
+```
+
+## Local Theme Override
+
+Use `StateWidgetTheme` when only one section of the UI needs a different
+visual treatment:
+
+```dart
+StateWidgetTheme(
+  data: StateWidgetThemeData(
+    iconColor: const Color(0xFFE65100),
+    messageColor: const Color(0xFF5D4037),
+    loadingIndicatorColor: const Color(0xFFE65100),
+    iconSize: 44,
+    maxContentWidth: 360,
+  ),
+  child: StateWidget<List<String>>(
+    listenable: state,
+    onRetry: _load,
+    builder: (context, data) => ListView(
+      children: data.map(Text.new).toList(),
+    ),
   ),
 );
 ```
@@ -263,6 +337,7 @@ Do not use it as a replacement for application state management. It is a UI rend
 - `StateSnapshot<T>` 用来承载当前状态、数据和错误文案
 - `StatePanels` 用来覆盖默认的 `idle / loading / empty / error` 视图
 - `StateWidgetTexts` 提供内置中英文默认文案
+- `StateWidgetThemeData` 支持全局主题扩展和局部主题覆写
 - 不传自定义面板时，组件自带默认实现
 
 ## 安装
@@ -321,6 +396,21 @@ import 'package:flutter_state_widget/flutter_state_widget.dart';
 
 - `StateWidgetTexts.english`
 - `StateWidgetTexts.chinese`
+
+### `StateWidgetThemeData`
+
+用于配置内置 loading 和 message 面板的主题令牌。
+
+可配置内容包括：
+
+- 图标颜色和尺寸
+- 文案颜色和文本样式
+- loading 指示器颜色
+- 操作按钮样式
+- 内边距、间距和最大内容宽度
+
+它既可以通过 `ThemeData.extensions` 全局注入，也可以通过
+`StateWidgetTheme` 做局部覆写。
 
 ## 基础示例
 
@@ -404,6 +494,64 @@ StateWidget<List<String>>(
   ),
   builder: (context, data) => ListView(
     children: data.map(Text.new).toList(),
+  ),
+);
+```
+
+## 多主题支持
+
+如果你希望 `StateWidget` 跟随宿主 App 的浅色、深色或品牌主题，可以把
+`StateWidgetThemeData` 放进 `ThemeData.extensions`：
+
+```dart
+MaterialApp(
+  theme: ThemeData(
+    colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1565C0)),
+    extensions: const [
+      StateWidgetThemeData(
+        iconColor: Color(0xFF1565C0),
+        loadingIndicatorColor: Color(0xFF1565C0),
+      ),
+    ],
+  ),
+  darkTheme: ThemeData(
+    brightness: Brightness.dark,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: const Color(0xFF80CBC4),
+      brightness: Brightness.dark,
+    ),
+    extensions: const [
+      StateWidgetThemeData(
+        iconColor: Color(0xFF80CBC4),
+        messageColor: Color(0xFFD7CCC8),
+        loadingIndicatorColor: Color(0xFF80CBC4),
+      ),
+    ],
+  ),
+  home: MyPage(),
+);
+```
+
+## 局部主题覆写
+
+如果你只想让某一个区域里的 `StateWidget` 使用不同视觉风格，可以包一层
+`StateWidgetTheme`：
+
+```dart
+StateWidgetTheme(
+  data: StateWidgetThemeData(
+    iconColor: const Color(0xFFE65100),
+    messageColor: const Color(0xFF5D4037),
+    loadingIndicatorColor: const Color(0xFFE65100),
+    iconSize: 44,
+    maxContentWidth: 360,
+  ),
+  child: StateWidget<List<String>>(
+    listenable: state,
+    onRetry: _load,
+    builder: (context, data) => ListView(
+      children: data.map(Text.new).toList(),
+    ),
   ),
 );
 ```

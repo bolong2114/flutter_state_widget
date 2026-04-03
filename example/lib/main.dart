@@ -5,23 +5,69 @@ void main() {
   runApp(const StateWidgetExampleApp());
 }
 
-class StateWidgetExampleApp extends StatelessWidget {
+class StateWidgetExampleApp extends StatefulWidget {
   const StateWidgetExampleApp({super.key});
+
+  @override
+  State<StateWidgetExampleApp> createState() => _StateWidgetExampleAppState();
+}
+
+class _StateWidgetExampleAppState extends State<StateWidgetExampleApp> {
+  ThemeMode _themeMode = ThemeMode.light;
+
+  void _setThemeMode(ThemeMode mode) {
+    setState(() {
+      _themeMode = mode;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'flutter_state_widget example',
+      themeMode: _themeMode,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1565C0)),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF1565C0),
+        ),
+        extensions: const [
+          StateWidgetThemeData(
+            iconColor: Color(0xFF1565C0),
+            loadingIndicatorColor: Color(0xFF1565C0),
+          ),
+        ],
       ),
-      home: const StateWidgetExamplePage(),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF80CBC4),
+          brightness: Brightness.dark,
+        ),
+        extensions: const [
+          StateWidgetThemeData(
+            iconColor: Color(0xFF80CBC4),
+            messageColor: Color(0xFFD7CCC8),
+            loadingIndicatorColor: Color(0xFF80CBC4),
+          ),
+        ],
+      ),
+      home: StateWidgetExamplePage(
+        themeMode: _themeMode,
+        onThemeModeChanged: _setThemeMode,
+      ),
     );
   }
 }
 
 class StateWidgetExamplePage extends StatefulWidget {
-  const StateWidgetExamplePage({super.key});
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
+
+  const StateWidgetExamplePage({
+    super.key,
+    required this.themeMode,
+    required this.onThemeModeChanged,
+  });
 
   @override
   State<StateWidgetExamplePage> createState() => _StateWidgetExamplePageState();
@@ -74,6 +120,7 @@ class _StateWidgetExamplePageState extends State<StateWidgetExamplePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = widget.themeMode == ThemeMode.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -87,6 +134,20 @@ class _StateWidgetExamplePageState extends State<StateWidgetExamplePage> {
               spacing: 12,
               runSpacing: 12,
               children: [
+                ChoiceChip(
+                  label: const Text('Light'),
+                  selected: widget.themeMode == ThemeMode.light,
+                  onSelected: (_) {
+                    widget.onThemeModeChanged(ThemeMode.light);
+                  },
+                ),
+                ChoiceChip(
+                  label: const Text('Dark'),
+                  selected: widget.themeMode == ThemeMode.dark,
+                  onSelected: (_) {
+                    widget.onThemeModeChanged(ThemeMode.dark);
+                  },
+                ),
                 FilledButton(
                   onPressed: _loadSuccess,
                   child: const Text('Success'),
@@ -112,36 +173,61 @@ class _StateWidgetExamplePageState extends State<StateWidgetExamplePage> {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: theme.colorScheme.outlineVariant),
                 ),
-                child: StateWidget<List<String>>(
-                  listenable: _state,
-                  onRetry: _loadSuccess,
-                  panels: StatePanels(
-                    idle: (context) => const Center(
-                      child: Text('Choose a state to preview'),
+                child: StateWidgetTheme(
+                  data: StateWidgetThemeData(
+                    iconColor: isDark
+                        ? const Color(0xFFFFCC80)
+                        : const Color(0xFFE65100),
+                    messageColor: isDark
+                        ? const Color(0xFFFFE0B2)
+                        : const Color(0xFF5D4037),
+                    loadingIndicatorColor: isDark
+                        ? const Color(0xFFFFCC80)
+                        : const Color(0xFFE65100),
+                    iconSize: 44,
+                    maxContentWidth: 360,
+                    actionButtonStyle: OutlinedButton.styleFrom(
+                      foregroundColor: isDark
+                          ? const Color(0xFFFFCC80)
+                          : const Color(0xFFE65100),
+                      side: BorderSide(
+                        color: isDark
+                            ? const Color(0xFFFFCC80)
+                            : const Color(0xFFE65100),
+                      ),
                     ),
                   ),
-                  builder: (context, data) {
-                    return ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: data.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        return DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerLowest,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Text(
-                              data[index],
-                              style: theme.textTheme.bodyLarge,
+                  child: StateWidget<List<String>>(
+                    listenable: _state,
+                    onRetry: _loadSuccess,
+                    panels: StatePanels(
+                      idle: (context) => const Center(
+                        child: Text('Choose a state to preview'),
+                      ),
+                    ),
+                    builder: (context, data) {
+                      return ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: data.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          return DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerLowest,
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          ),
-                        );
-                      },
-                    );
-                  },
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Text(
+                                data[index],
+                                style: theme.textTheme.bodyLarge,
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
