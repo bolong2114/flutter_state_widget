@@ -1,106 +1,81 @@
 # flutter_state_widget
 
-`flutter_state_widget` is a pure Flutter package for rendering a content region through five common UI states:
+`flutter_state_widget` 是一个面向 Flutter 的状态展示组件库，用于在同一块内容区域内统一管理 `idle`、`loading`、`empty`、`error`、`success` 五种常见界面状态。
 
-- idle
-- loading
-- empty
-- error
-- success
+它关注的是“状态渲染”，而不是“状态管理”。组件本身不发起请求、不持有业务数据源，也不绑定任何第三方状态管理方案，适合在项目、组件库或独立插件中稳定复用。
 
-It is designed for package-safe reuse:
+## 组件定位
 
-- no project assets
-- no third-party UI dependencies
-- no external state management dependency
-- fully replaceable placeholders for non-success states
-- driven by Flutter's built-in `ValueListenable`
+当页面存在以下需求时，这个组件会比手写分支判断更合适：
 
-## Features
+- 列表页、详情页、卡片区块都需要统一的加载态、空态和错误态
+- 异步逻辑已经在 `ViewModel`、`Controller`、`Bloc`、`Riverpod`、`Provider` 或其他层完成
+- 希望页面只关心“当前该渲染什么”，不关心占位视图如何重复搭建
+- 需要保留默认实现，同时允许针对局部业务做深度定制
 
-- `StateWidget<T>` renders either success content or a state panel
-- `LoadState` keeps the state model explicit and readable
-- `StateSnapshot<T>` carries the current state plus optional data/message
-- `StatePanels` lets you replace `idle`, `loading`, `empty`, and `error` views
-- `StateWidgetTexts` provides built-in Chinese and English placeholder copy
-- `StateWidgetThemeData` supports global theme extension and local overrides
-- default placeholders are included, so the package works out of the box
+## 设计目标
 
-## Installation
+- 纯 Flutter 实现，不依赖第三方 UI 组件
+- 不依赖项目资源文件，适合作为独立包发布
+- 使用 `ValueListenable` 驱动，接入成本低
+- 非成功态视图可整体替换
+- 默认文案与默认主题可单独覆写
+- 支持全局主题注入，也支持局部样式隔离
 
-Add the dependency to your `pubspec.yaml`:
+## 状态模型
+
+`flutter_state_widget` 采用非常直接的状态流转方式：
+
+```text
+异步逻辑 / 业务层
+        ↓
+StateSnapshot<T>
+        ↓
+ValueNotifier<StateSnapshot<T>>
+        ↓
+StateWidget<T>
+        ↓
+成功内容 或 状态占位
+```
+
+其中：
+
+- `LoadState` 描述当前状态阶段
+- `StateSnapshot<T>` 承载状态、数据和错误文案
+- `StateWidget<T>` 根据快照渲染最终界面
+
+## 功能特性
+
+- `StateWidget<T>` 统一承接成功态与非成功态渲染
+- `StateSnapshot<T>` 让状态切换更显式，便于阅读与维护
+- `StatePanels` 支持替换 `idle / loading / empty / error` 面板
+- `StateWidgetTexts` 支持覆写默认文案
+- `StateWidgetThemeData` 支持主题扩展与局部样式覆写
+- 内置默认占位视图，接入后即可直接使用
+
+## 安装
+
+在 `pubspec.yaml` 中添加依赖：
 
 ```yaml
 dependencies:
-  flutter_state_widget: ^0.1.1
+  flutter_state_widget: ^0.1.2
 ```
 
-Then import it:
+导入组件：
 
 ```dart
 import 'package:flutter_state_widget/flutter_state_widget.dart';
 ```
 
-## Core Types
+## 快速开始
 
-### `LoadState`
-
-Represents the current UI phase:
-
-- `idle`
-- `loading`
-- `empty`
-- `error`
-- `success`
-
-### `StateSnapshot<T>`
-
-Immutable snapshot object consumed by `StateWidget`.
-
-Constructors:
-
-- `StateSnapshot.idle()`
-- `StateSnapshot.loading()`
-- `StateSnapshot.empty()`
-- `StateSnapshot.error([message])`
-- `StateSnapshot.success(data)`
-
-### `StatePanels`
-
-Optional configuration object for replacing built-in panels:
-
-- `idle`
-- `loading`
-- `empty`
-- `error`
-
-### `StateWidgetTexts`
-
-Localized copy for the built-in `empty` and `error` placeholders.
-
-Built-in defaults:
-
-- `StateWidgetTexts.english`
-- `StateWidgetTexts.chinese`
-
-### `StateWidgetThemeData`
-
-Theme tokens for the built-in loading and message panels.
-
-You can configure:
-
-- icon color and size
-- message color and text style
-- loading indicator color
-- action button style
-- padding, spacing, and max content width
-
-Use it either through `ThemeData.extensions` or with a local
-`StateWidgetTheme`.
-
-## Basic Example
+下面是最小可用接入方式，也是最推荐的接入模式：
 
 ```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_state_widget/flutter_state_widget.dart';
+
 class DemoPage extends StatefulWidget {
   const DemoPage({super.key});
 
@@ -109,7 +84,7 @@ class DemoPage extends StatefulWidget {
 }
 
 class _DemoPageState extends State<DemoPage> {
-  final ValueNotifier<StateSnapshot<String>> state =
+  final ValueNotifier<StateSnapshot<List<String>>> _state =
       ValueNotifier(const StateSnapshot.loading());
 
   @override
@@ -119,247 +94,92 @@ class _DemoPageState extends State<DemoPage> {
   }
 
   Future<void> _load() async {
-    state.value = const StateSnapshot.loading();
+    _state.value = const StateSnapshot.loading();
 
     await Future<void>.delayed(const Duration(seconds: 1));
 
-    state.value = const StateSnapshot.success('Loaded content');
+    _state.value = const StateSnapshot.success([
+      '状态组件接入完成',
+      '这里是业务内容',
+      '可以继续替换成你的列表或详情页',
+    ]);
   }
 
   @override
   void dispose() {
-    state.dispose();
+    _state.dispose();
     super.dispose();
   }
- 
+
   @override
   Widget build(BuildContext context) {
-    return StateWidget<String>(
-      listenable: state,
-      onRetry: _load,
-      builder: (context, data) => Center(
-        child: Text(data),
+    return Scaffold(
+      appBar: AppBar(title: const Text('快速开始')),
+      body: StateWidget<List<String>>(
+        listenable: _state,
+        onRetry: _load,
+        builder: (context, data) {
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: data.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              return Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(data[index]),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
 }
 ```
 
-## Built-In Locale Defaults
+## 接入步骤
 
-When you do not pass `texts`, the package resolves default copy from the
-current `Locale`:
+### 1. 定义状态源
 
-- `zh` -> Chinese defaults
-- other locales -> English defaults
+组件不创建状态源，通常由页面自己持有：
 
 ```dart
-MaterialApp(
-  locale: const Locale('zh'),
-  home: StateWidget<List<String>>(
-    listenable: state,
-    onRetry: _load,
-    builder: (context, data) => ListView(
-      children: data.map(Text.new).toList(),
-    ),
-  ),
-);
+final ValueNotifier<StateSnapshot<List<String>>> state =
+    ValueNotifier(const StateSnapshot.loading());
 ```
 
-## Override Default Copy
+### 2. 在请求前后更新状态
 
-Use `texts` when the host app wants to fully control built-in placeholder
-copy without replacing the entire panel UI:
+推荐按以下顺序更新：
+
+```dart
+state.value = const StateSnapshot.loading();
+state.value = const StateSnapshot.empty();
+state.value = const StateSnapshot.error('网络请求失败，请稍后重试');
+state.value = const StateSnapshot.success(['条目一', '条目二']);
+```
+
+### 3. 用 `StateWidget` 承接渲染
 
 ```dart
 StateWidget<List<String>>(
   listenable: state,
   onRetry: _load,
-  texts: const StateWidgetTexts(
-    emptyTitle: 'Nothing here yet',
-    errorTitle: 'Request failed',
-    retryLabel: 'Try again',
-  ),
-  builder: (context, data) => ListView(
-    children: data.map(Text.new).toList(),
-  ),
+  builder: (context, data) {
+    return ListView(
+      children: data.map((item) => ListTile(title: Text(item))).toList(),
+    );
+  },
 );
-```
-
-## Multi-Theme Support
-
-Use `StateWidgetThemeData` in `ThemeData.extensions` when the host app wants
-`StateWidget` to follow different light, dark, or brand themes:
-
-```dart
-MaterialApp(
-  theme: ThemeData(
-    colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1565C0)),
-    extensions: const [
-      StateWidgetThemeData(
-        iconColor: Color(0xFF1565C0),
-        loadingIndicatorColor: Color(0xFF1565C0),
-      ),
-    ],
-  ),
-  darkTheme: ThemeData(
-    brightness: Brightness.dark,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: const Color(0xFF80CBC4),
-      brightness: Brightness.dark,
-    ),
-    extensions: const [
-      StateWidgetThemeData(
-        iconColor: Color(0xFF80CBC4),
-        messageColor: Color(0xFFD7CCC8),
-        loadingIndicatorColor: Color(0xFF80CBC4),
-      ),
-    ],
-  ),
-  home: MyPage(),
-);
-```
-
-## Local Theme Override
-
-Use `StateWidgetTheme` when only one section of the UI needs a different
-visual treatment:
-
-```dart
-StateWidgetTheme(
-  data: StateWidgetThemeData(
-    iconColor: const Color(0xFFE65100),
-    messageColor: const Color(0xFF5D4037),
-    loadingIndicatorColor: const Color(0xFFE65100),
-    iconSize: 44,
-    maxContentWidth: 360,
-  ),
-  child: StateWidget<List<String>>(
-    listenable: state,
-    onRetry: _load,
-    builder: (context, data) => ListView(
-      children: data.map(Text.new).toList(),
-    ),
-  ),
-);
-```
-
-## Custom Panels
-
-Use `StatePanels` when you want to replace the default placeholders:
-
-```dart
-final state = ValueNotifier<StateSnapshot<List<String>>>(
-  const StateSnapshot.empty(),
-);
-
-StateWidget<List<String>>(
-  listenable: state,
-  onRetry: () {},
-  builder: (context, data) => ListView(
-    children: data.map(Text.new).toList(),
-  ),
-  panels: StatePanels(
-    idle: (context) => const SizedBox.shrink(),
-    loading: (context) => const Center(
-      child: CircularProgressIndicator(),
-    ),
-    empty: (context, retry) => Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('Nothing here yet'),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: retry,
-            child: const Text('Refresh'),
-          ),
-        ],
-      ),
-    ),
-    error: (context, message, retry) => Center(
-      child: Text(message ?? 'Load failed'),
-    ),
-  ),
-);
-```
-
-## Typical State Updates
-
-```dart
-state.value = const StateSnapshot.loading();
-state.value = const StateSnapshot.empty();
-state.value = const StateSnapshot.error('Network request failed');
-state.value = const StateSnapshot.success(myData);
-```
-
-## Notes
-
-- `StateWidget` does not perform requests for you
-- `StateWidget` does not own the `ValueNotifier`
-- `StateWidget` only renders based on the current snapshot
-- `success` expects non-null data and forwards it to `builder`
-
-## When To Use
-
-Use this package when:
-
-- you already manage async work elsewhere
-- you want a consistent loading/empty/error wrapper
-- you need package-friendly defaults with optional full customization
-
-Do not use it as a replacement for application state management. It is a UI rendering helper, not a data flow framework.
-
----
-
-# 中文说明
-
-`flutter_state_widget` 是一个纯 Flutter 的状态展示组件库，用来在一个内容区域内统一处理五种常见状态：
-
-- idle
-- loading
-- empty
-- error
-- success
-
-它适合抽成独立插件复用，原因很直接：
-
-- 不依赖项目资源
-- 不依赖第三方 UI 组件
-- 不依赖外部状态管理方案
-- 非成功态占位都支持外部替换
-- 基于 Flutter 原生 `ValueListenable` 驱动
-
-## 功能特点
-
-- `StateWidget<T>` 负责根据当前状态渲染成功内容或占位面板
-- `LoadState` 用来描述当前加载状态
-- `StateSnapshot<T>` 用来承载当前状态、数据和错误文案
-- `StatePanels` 用来覆盖默认的 `idle / loading / empty / error` 视图
-- `StateWidgetTexts` 提供内置中英文默认文案
-- `StateWidgetThemeData` 支持全局主题扩展和局部主题覆写
-- 不传自定义面板时，组件自带默认实现
-
-## 安装
-
-在 `pubspec.yaml` 中加入依赖：
-
-```yaml
-dependencies:
-  flutter_state_widget: ^0.1.1
-```
-
-然后导入：
-
-```dart
-import 'package:flutter_state_widget/flutter_state_widget.dart';
 ```
 
 ## 核心类型
 
 ### `LoadState`
 
-表示当前 UI 所处阶段：
+用于描述当前界面所处的阶段：
 
 - `idle`
 - `loading`
@@ -369,7 +189,7 @@ import 'package:flutter_state_widget/flutter_state_widget.dart';
 
 ### `StateSnapshot<T>`
 
-一个不可变状态快照对象，供 `StateWidget` 消费。
+不可变状态快照对象，是 `StateWidget` 的直接输入。
 
 可用构造函数：
 
@@ -381,7 +201,7 @@ import 'package:flutter_state_widget/flutter_state_widget.dart';
 
 ### `StatePanels`
 
-用于替换默认占位面板的配置对象，支持：
+用于替换默认占位面板，支持以下状态：
 
 - `idle`
 - `loading`
@@ -390,152 +210,140 @@ import 'package:flutter_state_widget/flutter_state_widget.dart';
 
 ### `StateWidgetTexts`
 
-用于配置内置 `empty` 和 `error` 占位的默认文案。
+用于覆盖默认空态和错误态文案。
 
-内置默认值：
+内置文案常量：
 
-- `StateWidgetTexts.english`
 - `StateWidgetTexts.chinese`
+- `StateWidgetTexts.english`
 
 ### `StateWidgetThemeData`
 
-用于配置内置 loading 和 message 面板的主题令牌。
+用于配置默认占位视图的视觉表现，可控制：
 
-可配置内容包括：
+- 图标颜色与尺寸
+- 文案颜色与文本样式
+- 加载指示器颜色
+- 按钮样式
+- 内边距、间距、最大宽度
 
-- 图标颜色和尺寸
-- 文案颜色和文本样式
-- loading 指示器颜色
-- 操作按钮样式
-- 内边距、间距和最大内容宽度
+## 使用方式
 
-它既可以通过 `ThemeData.extensions` 全局注入，也可以通过
-`StateWidgetTheme` 做局部覆写。
+### 基础渲染
 
-## 基础示例
+最常见的用法是只关心成功态内容，把其他状态交给组件默认实现：
 
 ```dart
-class DemoPage extends StatefulWidget {
-  const DemoPage({super.key});
-
-  @override
-  State<DemoPage> createState() => _DemoPageState();
-}
-
-class _DemoPageState extends State<DemoPage> {
-  final ValueNotifier<StateSnapshot<String>> state =
-      ValueNotifier(const StateSnapshot.loading());
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    state.value = const StateSnapshot.loading();
-
-    await Future<void>.delayed(const Duration(seconds: 1));
-
-    state.value = const StateSnapshot.success('加载完成');
-  }
-
-  @override
-  void dispose() {
-    state.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return StateWidget<String>(
-      listenable: state,
-      onRetry: _load,
-      builder: (context, data) => Center(
-        child: Text(data),
-      ),
+StateWidget<List<String>>(
+  listenable: state,
+  onRetry: _load,
+  builder: (context, data) {
+    return ListView.builder(
+      itemCount: data.length,
+      itemBuilder: (context, index) {
+        return ListTile(title: Text(data[index]));
+      },
     );
-  }
-}
-```
-
-## 内置语言回退
-
-当你没有传入 `texts` 时，组件会根据当前 `Locale` 自动选择默认文案：
-
-- `zh` -> 中文默认文案
-- 其他语言 -> 英文默认文案
-
-```dart
-MaterialApp(
-  locale: const Locale('zh'),
-  home: StateWidget<List<String>>(
-    listenable: state,
-    onRetry: _load,
-    builder: (context, data) => ListView(
-      children: data.map(Text.new).toList(),
-    ),
-  ),
+  },
 );
 ```
 
-## 覆盖默认文案
+### 自定义默认文案
 
-如果你只想改默认文案，不想整套替换 `empty / error` UI，可以传入 `texts`：
+如果只想调整提示语，而不想改默认布局，可以传入 `texts`：
 
 ```dart
 StateWidget<List<String>>(
   listenable: state,
   onRetry: _load,
   texts: const StateWidgetTexts(
-    emptyTitle: '这里还没有内容',
-    errorTitle: '请求失败',
-    retryLabel: '再试一次',
+    emptyTitle: '当前还没有内容',
+    errorTitle: '加载失败，请稍后再试',
+    retryLabel: '重新加载',
   ),
-  builder: (context, data) => ListView(
-    children: data.map(Text.new).toList(),
-  ),
+  builder: (context, data) {
+    return ListView(
+      children: data.map((item) => ListTile(title: Text(item))).toList(),
+    );
+  },
 );
 ```
 
-## 多主题支持
+### 替换默认状态面板
 
-如果你希望 `StateWidget` 跟随宿主 App 的浅色、深色或品牌主题，可以把
-`StateWidgetThemeData` 放进 `ThemeData.extensions`：
+如果业务对空态、错误态、加载态有自己的设计规范，可以通过 `StatePanels` 整体替换：
+
+```dart
+StateWidget<List<String>>(
+  listenable: state,
+  onRetry: _load,
+  panels: StatePanels(
+    idle: (context) => const Center(
+      child: Text('请先选择查询条件'),
+    ),
+    loading: (context) => const Center(
+      child: CircularProgressIndicator(),
+    ),
+    empty: (context, retry) => Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('暂无结果'),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: retry,
+            child: const Text('刷新'),
+          ),
+        ],
+      ),
+    ),
+    error: (context, message, retry) => Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(message ?? '服务暂时不可用'),
+          const SizedBox(height: 12),
+          OutlinedButton(
+            onPressed: retry,
+            child: const Text('重试'),
+          ),
+        ],
+      ),
+    ),
+  ),
+  builder: (context, data) {
+    return ListView(
+      children: data.map((item) => ListTile(title: Text(item))).toList(),
+    );
+  },
+);
+```
+
+### 全局主题注入
+
+当你希望整个应用中的状态组件都遵循统一视觉规范时，推荐通过 `ThemeData.extensions` 注入：
 
 ```dart
 MaterialApp(
   theme: ThemeData(
-    colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1565C0)),
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: const Color(0xFF1565C0),
+    ),
     extensions: const [
       StateWidgetThemeData(
         iconColor: Color(0xFF1565C0),
         loadingIndicatorColor: Color(0xFF1565C0),
+        messageColor: Color(0xFF455A64),
       ),
     ],
   ),
-  darkTheme: ThemeData(
-    brightness: Brightness.dark,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: const Color(0xFF80CBC4),
-      brightness: Brightness.dark,
-    ),
-    extensions: const [
-      StateWidgetThemeData(
-        iconColor: Color(0xFF80CBC4),
-        messageColor: Color(0xFFD7CCC8),
-        loadingIndicatorColor: Color(0xFF80CBC4),
-      ),
-    ],
-  ),
-  home: MyPage(),
+  home: const DemoPage(),
 );
 ```
 
-## 局部主题覆写
+### 局部主题覆写
 
-如果你只想让某一个区域里的 `StateWidget` 使用不同视觉风格，可以包一层
-`StateWidgetTheme`：
+如果只有某一块区域需要特殊视觉风格，可以使用 `StateWidgetTheme`：
 
 ```dart
 StateWidgetTheme(
@@ -545,80 +353,132 @@ StateWidgetTheme(
     loadingIndicatorColor: const Color(0xFFE65100),
     iconSize: 44,
     maxContentWidth: 360,
+    actionButtonStyle: OutlinedButton.styleFrom(
+      foregroundColor: const Color(0xFFE65100),
+    ),
   ),
   child: StateWidget<List<String>>(
     listenable: state,
     onRetry: _load,
-    builder: (context, data) => ListView(
-      children: data.map(Text.new).toList(),
-    ),
+    builder: (context, data) {
+      return ListView(
+        children: data.map((item) => ListTile(title: Text(item))).toList(),
+      );
+    },
   ),
 );
 ```
 
-## 自定义状态面板
+### 多语言默认文案策略
 
-如果你想完全接管默认占位 UI，可以传入 `StatePanels`：
+当未显式传入 `texts` 时，组件会根据当前 `Locale` 自动选择内置文案：
+
+- `languageCode == 'zh'` 时使用中文默认文案
+- 其他语言环境下使用英文默认文案
 
 ```dart
-final state = ValueNotifier<StateSnapshot<List<String>>>(
-  const StateSnapshot.empty(),
-);
-
-StateWidget<List<String>>(
-  listenable: state,
-  onRetry: () {},
-  builder: (context, data) => ListView(
-    children: data.map(Text.new).toList(),
-  ),
-  panels: StatePanels(
-    idle: (context) => const SizedBox.shrink(),
-    loading: (context) => const Center(
-      child: CircularProgressIndicator(),
-    ),
-    empty: (context, retry) => Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('当前暂无数据'),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: retry,
-            child: const Text('重新加载'),
-          ),
-        ],
-      ),
-    ),
-    error: (context, message, retry) => Center(
-      child: Text(message ?? '加载失败'),
-    ),
+MaterialApp(
+  locale: const Locale('zh'),
+  home: StateWidget<List<String>>(
+    listenable: state,
+    onRetry: _load,
+    builder: (context, data) {
+      return ListView(
+        children: data.map((item) => ListTile(title: Text(item))).toList(),
+      );
+    },
   ),
 );
 ```
 
-## 常见状态切换写法
+## 推荐接入模式
+
+为了让组件在项目中长期可维护，建议采用以下职责分层：
+
+- 业务层负责请求、缓存、错误处理和状态转换
+- 页面层负责持有 `ValueNotifier<StateSnapshot<T>>`
+- `StateWidget<T>` 只负责界面呈现，不承载业务逻辑
+
+一个比较稳妥的写法是：
 
 ```dart
-state.value = const StateSnapshot.loading();
-state.value = const StateSnapshot.empty();
-state.value = const StateSnapshot.error('网络请求失败');
-state.value = const StateSnapshot.success(myData);
+Future<void> _load() async {
+  state.value = const StateSnapshot.loading();
+
+  try {
+    final result = await repository.fetchData();
+
+    if (result.isEmpty) {
+      state.value = const StateSnapshot.empty();
+      return;
+    }
+
+    state.value = StateSnapshot.success(result);
+  } catch (error) {
+    state.value = StateSnapshot.error(error.toString());
+  }
+}
 ```
 
-## 使用说明
+这种方式的优势是：
 
-- `StateWidget` 不负责发请求
-- `StateWidget` 不管理你的业务状态生命周期
-- `StateWidget` 不持有 `ValueNotifier` 的释放职责
-- `StateWidget` 只根据当前 `StateSnapshot` 做渲染
-- `success` 状态要求有可用数据，并会传给 `builder`
+- 页面状态转换足够清晰
+- 单元测试容易覆盖
+- 后续替换状态管理方案时，界面层改动很小
 
-## 适用场景
+## 行为约定
 
-适合在这些场景下使用：
+在使用前，建议先明确以下约束：
 
-- 你的异步逻辑已经在别处处理好了
-- 你只是想统一 loading / empty / error / success 的展示层
-- 你希望组件默认可用，同时又支持业务方完全自定义占位
+- `StateWidget` 不负责发起请求
+- `StateWidget` 不持有也不释放外部业务资源，只消费 `listenable`
+- `success` 状态下会将 `data` 交给 `builder`
+- `idle / loading / empty / error` 状态下会优先使用自定义 `panels`，否则使用内置实现
+- `onRetry` 只是在默认或自定义面板中作为回调透传，不带任何内置重试逻辑
 
-不建议把它当成状态管理框架使用。它是一个 UI 状态展示组件，不是数据流方案。
+## 适用与边界
+
+适合使用的场景：
+
+- 页面已有异步数据流，只缺统一渲染容器
+- 列表页、详情页、局部模块都要保持一致的占位体验
+- 需要一个轻量、可发布、可复用的状态渲染组件
+
+不建议承担的职责：
+
+- 代替完整状态管理框架
+- 代替 Repository、UseCase、Controller 等业务层抽象
+- 在组件内部直接拼接复杂请求流程
+
+## 示例工程
+
+仓库中的示例工程位于 `example/`，包含以下场景：
+
+- 成功态展示
+- 空态切换
+- 错误态切换
+- `idle` 态演示
+- 深色 / 浅色主题切换
+- 局部 `StateWidgetTheme` 覆写
+
+可以直接运行查看效果：
+
+```bash
+cd example
+flutter run
+```
+
+## 导出内容
+
+包入口 `package:flutter_state_widget/flutter_state_widget.dart` 默认导出：
+
+- `LoadState`
+- `StateSnapshot`
+- `StateWidget`
+- `StateWidgetTheme`
+- `StateWidgetThemeData`
+- `StateWidgetTexts`
+
+## 总结
+
+`flutter_state_widget` 适合在 Flutter 项目中承担“统一状态渲染层”的角色。它不侵入现有架构，不绑定状态管理方案，同时保留了足够明确的默认行为和可扩展能力，适合作为项目基础组件长期维护。
