@@ -6,14 +6,12 @@ import 'package:flutter_state_widget/flutter_state_widget.dart';
 void main() {
   group('StateWidget', () {
     testWidgets('renders success content', (tester) async {
-      final state = ValueNotifier<StateSnapshot<String>>(
-        const StateSnapshot.success('done'),
-      );
+      final state = StateWidgetController<String>.success('done');
 
       await tester.pumpWidget(
         _wrap(
           StateWidget<String>(
-            listenable: state,
+            controller: state,
             builder: (context, data) => Text('value:$data'),
           ),
         ),
@@ -23,14 +21,12 @@ void main() {
     });
 
     testWidgets('renders default loading placeholder', (tester) async {
-      final state = ValueNotifier<StateSnapshot<String>>(
-        const StateSnapshot.loading(),
-      );
+      final state = StateWidgetController<String>.loading();
 
       await tester.pumpWidget(
         _wrap(
           StateWidget<String>(
-            listenable: state,
+            controller: state,
             builder: (context, data) => Text(data),
           ),
         ),
@@ -40,14 +36,12 @@ void main() {
     });
 
     testWidgets('renders custom panels', (tester) async {
-      final state = ValueNotifier<StateSnapshot<String>>(
-        const StateSnapshot.empty(),
-      );
+      final state = StateWidgetController<String>.empty();
 
       await tester.pumpWidget(
         _wrap(
           StateWidget<String>(
-            listenable: state,
+            controller: state,
             builder: (context, data) => Text(data),
             panels: StatePanels(
               idle: (context) => const Text('idle'),
@@ -61,30 +55,28 @@ void main() {
 
       expect(find.text('empty'), findsOneWidget);
 
-      state.value = const StateSnapshot.loading();
+      state.loading();
       await tester.pump();
       expect(find.text('loading'), findsOneWidget);
 
-      state.value = const StateSnapshot.error('boom');
+      state.error('boom');
       await tester.pump();
       expect(find.text('error'), findsOneWidget);
 
-      state.value = const StateSnapshot.idle();
+      state.idle();
       await tester.pump();
       expect(find.text('idle'), findsOneWidget);
     });
 
     testWidgets('passes retry callback to default empty placeholder',
         (tester) async {
-      final state = ValueNotifier<StateSnapshot<String>>(
-        const StateSnapshot.empty(),
-      );
+      final state = StateWidgetController<String>.empty();
       var retried = 0;
 
       await tester.pumpWidget(
         _wrap(
           StateWidget<String>(
-            listenable: state,
+            controller: state,
             onRetry: () => retried++,
             builder: (context, data) => Text(data),
           ),
@@ -98,14 +90,12 @@ void main() {
     });
 
     testWidgets('uses Chinese defaults for zh locale', (tester) async {
-      final state = ValueNotifier<StateSnapshot<String>>(
-        const StateSnapshot.empty(),
-      );
+      final state = StateWidgetController<String>.empty();
 
       await tester.pumpWidget(
         _wrap(
           StateWidget<String>(
-            listenable: state,
+            controller: state,
             onRetry: () {},
             builder: (context, data) => Text(data),
           ),
@@ -118,14 +108,12 @@ void main() {
     });
 
     testWidgets('lets host override default texts', (tester) async {
-      final state = ValueNotifier<StateSnapshot<String>>(
-        const StateSnapshot.error(),
-      );
+      final state = StateWidgetController<String>.error();
 
       await tester.pumpWidget(
         _wrap(
           StateWidget<String>(
-            listenable: state,
+            controller: state,
             onRetry: () {},
             texts: const StateWidgetTexts(
               emptyTitle: 'Nothing to show',
@@ -143,14 +131,12 @@ void main() {
 
     testWidgets('uses StateWidgetThemeData from ThemeData extension',
         (tester) async {
-      final state = ValueNotifier<StateSnapshot<String>>(
-        const StateSnapshot.empty(),
-      );
+      final state = StateWidgetController<String>.empty();
 
       await tester.pumpWidget(
         _wrap(
           StateWidget<String>(
-            listenable: state,
+            controller: state,
             onRetry: () {},
             builder: (context, data) => Text(data),
           ),
@@ -174,7 +160,7 @@ void main() {
       expect(icon.size, 48);
       expect(text.style?.color, Colors.orange);
 
-      state.value = const StateSnapshot.loading();
+      state.loading();
       await tester.pump();
 
       final indicator = tester.widget<CircularProgressIndicator>(
@@ -185,9 +171,7 @@ void main() {
 
     testWidgets('local StateWidgetTheme overrides ThemeData extension',
         (tester) async {
-      final state = ValueNotifier<StateSnapshot<String>>(
-        const StateSnapshot.error(),
-      );
+      final state = StateWidgetController<String>.error();
 
       await tester.pumpWidget(
         _wrap(
@@ -197,7 +181,7 @@ void main() {
               messageColor: Colors.blue,
             ),
             child: StateWidget<String>(
-              listenable: state,
+              controller: state,
               onRetry: () {},
               builder: (context, data) => Text(data),
             ),
@@ -221,14 +205,12 @@ void main() {
     });
 
     testWidgets('updates when state changes', (tester) async {
-      final state = ValueNotifier<StateSnapshot<String>>(
-        const StateSnapshot.loading(),
-      );
+      final state = StateWidgetController<String>.loading();
 
       await tester.pumpWidget(
         _wrap(
           StateWidget<String>(
-            listenable: state,
+            controller: state,
             builder: (context, data) => Text(data),
           ),
         ),
@@ -236,7 +218,7 @@ void main() {
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
-      state.value = const StateSnapshot.success('loaded');
+      state.success('loaded');
       await tester.pump();
 
       expect(find.text('loaded'), findsOneWidget);

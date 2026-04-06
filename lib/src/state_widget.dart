@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'load_state.dart';
 import 'state_snapshot.dart';
+import 'state_widget_controller.dart';
 import 'state_widget_theme.dart';
 import 'state_widget_texts.dart';
 
@@ -44,8 +45,8 @@ class StatePanels {
 
 /// Renders one of several state panels, or success content when data is ready.
 class StateWidget<T> extends StatelessWidget {
-  /// Listenable source of truth for the current UI state.
-  final ValueListenable<StateSnapshot<T>> listenable;
+  /// Controller source of truth for the current UI state.
+  final StateWidgetController<T> controller;
 
   /// Builds the success content when [LoadState.success] is active.
   final StateContentBuilder<T> builder;
@@ -64,7 +65,7 @@ class StateWidget<T> extends StatelessWidget {
 
   const StateWidget({
     super.key,
-    required this.listenable,
+    required this.controller,
     required this.builder,
     this.onRetry,
     this.panels = const StatePanels(),
@@ -73,9 +74,10 @@ class StateWidget<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<StateSnapshot<T>>(
-      valueListenable: listenable,
-      builder: (context, snapshot, _) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final snapshot = controller.value;
         switch (snapshot.status) {
           case LoadState.idle:
             return _buildIdle(context);

@@ -17,7 +17,7 @@
 
 - 纯 Flutter 实现，不依赖第三方 UI 组件
 - 不依赖项目资源文件，适合作为独立包发布
-- 使用 `ValueListenable` 驱动，接入成本低
+- 使用 `StateWidgetController` 驱动，业务侧无需手写 `ValueNotifier`
 - 非成功态视图可整体替换
 - 默认文案与默认主题可单独覆写
 - 支持全局主题注入，也支持局部样式隔离
@@ -31,7 +31,7 @@
         ↓
 StateSnapshot<T>
         ↓
-ValueNotifier<StateSnapshot<T>>
+StateWidgetController<T>
         ↓
 StateWidget<T>
         ↓
@@ -59,7 +59,7 @@ StateWidget<T>
 
 ```yaml
 dependencies:
-  flutter_state_widget: ^0.1.2
+  flutter_state_widget: ^0.2.0
 ```
 
 导入组件：
@@ -84,8 +84,8 @@ class DemoPage extends StatefulWidget {
 }
 
 class _DemoPageState extends State<DemoPage> {
-  final ValueNotifier<StateSnapshot<List<String>>> _state =
-      ValueNotifier(const StateSnapshot.loading());
+  final StateWidgetController<List<String>> _state =
+      StateWidgetController<List<String>>.loading();
 
   @override
   void initState() {
@@ -94,11 +94,11 @@ class _DemoPageState extends State<DemoPage> {
   }
 
   Future<void> _load() async {
-    _state.value = const StateSnapshot.loading();
+    _state.loading();
 
     await Future<void>.delayed(const Duration(seconds: 1));
 
-    _state.value = const StateSnapshot.success([
+    _state.success([
       '状态组件接入完成',
       '这里是业务内容',
       '可以继续替换成你的列表或详情页',
@@ -116,7 +116,7 @@ class _DemoPageState extends State<DemoPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('快速开始')),
       body: StateWidget<List<String>>(
-        listenable: _state,
+        controller: _state,
         onRetry: _load,
         builder: (context, data) {
           return ListView.separated(
@@ -146,8 +146,8 @@ class _DemoPageState extends State<DemoPage> {
 组件不创建状态源，通常由页面自己持有：
 
 ```dart
-final ValueNotifier<StateSnapshot<List<String>>> state =
-    ValueNotifier(const StateSnapshot.loading());
+final StateWidgetController<List<String>> state =
+    StateWidgetController<List<String>>.loading();
 ```
 
 ### 2. 在请求前后更新状态
@@ -155,17 +155,17 @@ final ValueNotifier<StateSnapshot<List<String>>> state =
 推荐按以下顺序更新：
 
 ```dart
-state.value = const StateSnapshot.loading();
-state.value = const StateSnapshot.empty();
-state.value = const StateSnapshot.error('网络请求失败，请稍后重试');
-state.value = const StateSnapshot.success(['条目一', '条目二']);
+state.loading();
+state.empty();
+state.error('网络请求失败，请稍后重试');
+state.success(['条目一', '条目二']);
 ```
 
 ### 3. 用 `StateWidget` 承接渲染
 
 ```dart
 StateWidget<List<String>>(
-  listenable: state,
+  controller: state,
   onRetry: _load,
   builder: (context, data) {
     return ListView(
@@ -198,6 +198,27 @@ StateWidget<List<String>>(
 - `StateSnapshot.empty()`
 - `StateSnapshot.error([message])`
 - `StateSnapshot.success(data)`
+
+### `StateWidgetController<T>`
+
+`StateWidget` 的状态控制器，负责维护当前 `StateSnapshot<T>` 并通知界面刷新。
+
+常用构造函数：
+
+- `StateWidgetController.idle()`
+- `StateWidgetController.loading()`
+- `StateWidgetController.empty()`
+- `StateWidgetController.error([message])`
+- `StateWidgetController.success(data)`
+
+常用状态切换方法：
+
+- `state.idle()`
+- `state.loading()`
+- `state.empty()`
+- `state.error([message])`
+- `state.success(data)`
+- `state.update(snapshot)`
 
 ### `StatePanels`
 
@@ -235,7 +256,7 @@ StateWidget<List<String>>(
 
 ```dart
 StateWidget<List<String>>(
-  listenable: state,
+  controller: state,
   onRetry: _load,
   builder: (context, data) {
     return ListView.builder(
@@ -254,7 +275,7 @@ StateWidget<List<String>>(
 
 ```dart
 StateWidget<List<String>>(
-  listenable: state,
+  controller: state,
   onRetry: _load,
   texts: const StateWidgetTexts(
     emptyTitle: '当前还没有内容',
@@ -275,7 +296,7 @@ StateWidget<List<String>>(
 
 ```dart
 StateWidget<List<String>>(
-  listenable: state,
+  controller: state,
   onRetry: _load,
   panels: StatePanels(
     idle: (context) => const Center(
@@ -358,7 +379,7 @@ StateWidgetTheme(
     ),
   ),
   child: StateWidget<List<String>>(
-    listenable: state,
+    controller: state,
     onRetry: _load,
     builder: (context, data) {
       return ListView(
@@ -380,7 +401,7 @@ StateWidgetTheme(
 MaterialApp(
   locale: const Locale('zh'),
   home: StateWidget<List<String>>(
-    listenable: state,
+    controller: state,
     onRetry: _load,
     builder: (context, data) {
       return ListView(
@@ -396,26 +417,26 @@ MaterialApp(
 为了让组件在项目中长期可维护，建议采用以下职责分层：
 
 - 业务层负责请求、缓存、错误处理和状态转换
-- 页面层负责持有 `ValueNotifier<StateSnapshot<T>>`
+- 页面层负责持有 `StateWidgetController<T>`
 - `StateWidget<T>` 只负责界面呈现，不承载业务逻辑
 
 一个比较稳妥的写法是：
 
 ```dart
 Future<void> _load() async {
-  state.value = const StateSnapshot.loading();
+  state.loading();
 
   try {
     final result = await repository.fetchData();
 
     if (result.isEmpty) {
-      state.value = const StateSnapshot.empty();
+      state.empty();
       return;
     }
 
-    state.value = StateSnapshot.success(result);
+    state.success(result);
   } catch (error) {
-    state.value = StateSnapshot.error(error.toString());
+    state.error(error.toString());
   }
 }
 ```
@@ -431,7 +452,7 @@ Future<void> _load() async {
 在使用前，建议先明确以下约束：
 
 - `StateWidget` 不负责发起请求
-- `StateWidget` 不持有也不释放外部业务资源，只消费 `listenable`
+- `StateWidget` 不持有业务数据，只消费 `controller` 当前状态
 - `success` 状态下会将 `data` 交给 `builder`
 - `idle / loading / empty / error` 状态下会优先使用自定义 `panels`，否则使用内置实现
 - `onRetry` 只是在默认或自定义面板中作为回调透传，不带任何内置重试逻辑
@@ -474,6 +495,7 @@ flutter run
 
 - `LoadState`
 - `StateSnapshot`
+- `StateWidgetController`
 - `StateWidget`
 - `StateWidgetTheme`
 - `StateWidgetThemeData`

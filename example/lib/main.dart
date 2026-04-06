@@ -74,10 +74,8 @@ class StateWidgetExamplePage extends StatefulWidget {
 }
 
 class _StateWidgetExamplePageState extends State<StateWidgetExamplePage> {
-  final ValueNotifier<StateSnapshot<List<String>>> _state =
-      ValueNotifier<StateSnapshot<List<String>>>(
-    const StateSnapshot.loading(),
-  );
+  final StateWidgetController<List<String>> _state =
+      StateWidgetController<List<String>>.loading();
 
   @override
   void initState() {
@@ -92,9 +90,9 @@ class _StateWidgetExamplePageState extends State<StateWidgetExamplePage> {
   }
 
   Future<void> _loadSuccess() async {
-    _state.value = const StateSnapshot.loading();
+    _state.loading();
     await Future<void>.delayed(const Duration(milliseconds: 500));
-    _state.value = const StateSnapshot.success([
+    _state.success([
       'First item',
       'Second item',
       'Third item',
@@ -102,19 +100,19 @@ class _StateWidgetExamplePageState extends State<StateWidgetExamplePage> {
   }
 
   Future<void> _loadEmpty() async {
-    _state.value = const StateSnapshot.loading();
+    _state.loading();
     await Future<void>.delayed(const Duration(milliseconds: 500));
-    _state.value = const StateSnapshot.empty();
+    _state.empty();
   }
 
   Future<void> _loadError() async {
-    _state.value = const StateSnapshot.loading();
+    _state.loading();
     await Future<void>.delayed(const Duration(milliseconds: 500));
-    _state.value = const StateSnapshot.error('Request failed, tap retry.');
+    _state.error('Request failed, tap retry.');
   }
 
   void _showIdle() {
-    _state.value = const StateSnapshot.idle();
+    _state.idle();
   }
 
   @override
@@ -198,7 +196,7 @@ class _StateWidgetExamplePageState extends State<StateWidgetExamplePage> {
                     ),
                   ),
                   child: StateWidget<List<String>>(
-                    listenable: _state,
+                    controller: _state,
                     onRetry: _loadSuccess,
                     panels: StatePanels(
                       idle: (context) => const Center(

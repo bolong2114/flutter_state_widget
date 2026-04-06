@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.0
+
+- Breaking: replaced `StateWidget.listenable` with `StateWidget.controller`.
+- Added `StateWidgetController<T>` to drive `idle/loading/empty/error/success` transitions directly.
+- Updated package tests and `example` app to use `StateWidgetController`.
+- Updated README API documentation and usage snippets to the controller-based model.
+
 ## 0.1.2
 
 - Added `StateWidgetThemeData` for configuring built-in loading and message panel styling.
