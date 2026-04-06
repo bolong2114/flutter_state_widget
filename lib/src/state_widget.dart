@@ -1,8 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'load_state.dart';
-import 'state_snapshot.dart';
 import 'state_widget_controller.dart';
 import 'state_widget_theme.dart';
 import 'state_widget_texts.dart';

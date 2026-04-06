@@ -1,6 +1,5 @@
 import 'dart:ui';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// Theme data used by [StateWidget]'s built-in loading and message panels.
